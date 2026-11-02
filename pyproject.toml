@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arm-copilot"
+version = "0.1.0"
+description = "具身智能产品部署助手：SO-101 机械臂等产品的安装、配置、校准全流程 AI 指导"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "arm-copilot contributors" }]
+dependencies = [
+    "openai>=1.40",
+    "rich>=13.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+arm-copilot = "arm_copilot.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["arm_copilot*"]
