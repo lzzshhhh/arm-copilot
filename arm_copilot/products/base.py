@@ -28,3 +28,10 @@ class ProductProfile:
 
 
 PRODUCTS: dict[str, ProductProfile] = {}
+
+
+def register(profile: ProductProfile) -> None:
+    """注册产品档案；key 重复说明配置冲突，立即抛错而不是静默覆盖。"""
+    if profile.key in PRODUCTS:
+        raise ValueError(f"产品档案重复注册: {profile.key}")
+    PRODUCTS[profile.key] = profile

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 
 from .base import Tool, ToolContext
@@ -32,11 +33,24 @@ def _token(out: str, index: int) -> str:
     return toks[index] if len(toks) > index else "未知"
 
 
+_PORT_LINE = re.compile(r"^\[\d+\]", re.MULTILINE)
+
+
+def _has_port_listing(out: str) -> bool:
+    """find-port 输出中是否有「[0] COM3 [FEETECH] (available)」式的端口清单行。
+
+    无设备时该命令可能退出码为 0 且输出一段提示文本，不能只凭退出码与非空判断。
+    """
+    return bool(_PORT_LINE.search(out))
+
+
 def make_env_check_tool(ctx: ToolContext) -> Tool:
     def handler(args: dict) -> str:
         lines = ["环境体检结果："]
 
         code_py, out_py, _ = _exec(ctx, "python --version")
+        if code_py != 0:
+            code_py, out_py, _ = _exec(ctx, "python3 --version")  # Linux 常只有 python3
         py = _token(out_py, -1) if code_py == 0 else "未知"
         try:
             ok_py = tuple(map(int, py.split(".")[:2])) >= (3, 12)
@@ -58,7 +72,7 @@ def make_env_check_tool(ctx: ToolContext) -> Tool:
             ver = next(l.split()[-1] for l in out_lr.splitlines() if l.startswith("Version:"))
             lines.append(f"- LeRobot: {ver} ✓ 已安装")
             code_port, out_port, _ = _exec(ctx, "lerobot-find-port")
-            if code_port == 0 and out_port.strip():
+            if code_port == 0 and _has_port_listing(out_port):
                 lines.append(f"- 串口设备：\n{out_port.strip()}")
             else:
                 lines.append("- 串口设备：未检测到 FEETECH 设备（确认机械臂已供电、USB 已连接后重试）")

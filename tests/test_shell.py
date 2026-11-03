@@ -102,3 +102,26 @@ class TestRunCommandTool:
             "reason": "校准",
         })
         assert "Calibration saved" in out
+
+    def test_risky_denied_when_no_approver(self):
+        # 无确认回调（approve=None）时按拒绝处理（fail-closed），命令不执行
+        ctx = ToolContext(mock=True)
+        out = make_run_command_tool(ctx).handler({"command": "pip install lerobot", "reason": ""})
+        assert "按拒绝处理" in out
+        assert ctx.mock_state.get("lerobot") is None
+
+    def test_mock_python_m_pip_install_sets_state(self):
+        # python -m pip 形式的安装在 mock 下与裸 pip 等价，必须写入 state
+        ctx = ToolContext(mock=True, approve=lambda *a: True)
+        out = make_run_command_tool(ctx).handler({
+            "command": 'python -m pip install "lerobot[feetech]"',
+            "reason": "安装依赖",
+        })
+        assert "Successfully installed" in out
+        assert ctx.mock_state.get("lerobot") == "0.5.2"
+
+    def test_mock_python_m_pip_show_reads_state(self):
+        ctx = ToolContext(mock=True)
+        ctx.mock_state["lerobot"] = "0.5.2"
+        out = make_run_command_tool(ctx).handler({"command": "python -m pip show lerobot", "reason": ""})
+        assert "0.5.2" in out

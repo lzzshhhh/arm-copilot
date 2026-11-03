@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from .base import PRODUCTS, ProductProfile, Step
+from .base import ProductProfile, Step, register
 
 _KEY = "so101"
 
@@ -197,4 +197,4 @@ def _build() -> ProductProfile:
     )
 
 
-PRODUCTS[_KEY] = _build()
+register(_build())

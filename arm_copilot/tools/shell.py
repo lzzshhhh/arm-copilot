@@ -106,11 +106,19 @@ def _mock_ports() -> str:
     )
 
 
+_PYTHON_M_PIP = re.compile(r"^python3?\s+-m\s+pip\b")
+
+
 def mock_run(command: str, state: dict) -> tuple[int, str, str]:
     """按命令模式返回模拟输出；state 记录 mock 环境的安装状态（如 lerobot 是否已装）。"""
     cmd = command.strip()
     low = cmd.lower()
     py = platform.python_version()
+
+    # validate 对 python -m pip 与裸 pip 一视同仁，mock 也必须等价处理，否则该形式不写入 state
+    m = _PYTHON_M_PIP.match(low)
+    if m:
+        low = "pip" + low[m.end():]
 
     if low.startswith(("python", "python3")):
         return 0, f"Python {py}", ""
@@ -204,7 +212,12 @@ def make_run_command_tool(ctx: ToolContext) -> Tool:
         if not ok:
             return f"拒绝执行：{why}\n命令：{command}"
         risk = classify_risk(command)
-        if risk != RISK_SAFE and ctx.approve is not None:
+        if risk != RISK_SAFE:
+            if ctx.approve is None:
+                return (
+                    f"当前环境无法请求用户确认，已按拒绝处理（{risk} 级）：{command}\n"
+                    "请向用户说明需要人工确认才能执行该命令。"
+                )
             if not ctx.approve(command, risk, reason):
                 return (
                     f"用户拒绝执行该命令（{risk} 级）：{command}\n"

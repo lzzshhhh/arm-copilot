@@ -1,8 +1,11 @@
 """产品档案数据完整性与工具查询。"""
 
+import pytest
+
 from arm_copilot.products import PRODUCTS
+from arm_copilot.products.base import ProductProfile, register
 from arm_copilot.tools.base import ToolContext
-from arm_copilot.tools.diagnostics import make_env_check_tool
+from arm_copilot.tools.diagnostics import _has_port_listing, make_env_check_tool
 from arm_copilot.tools.knowledge import make_faq_tool, make_workflow_tool
 from arm_copilot.tools.shell import validate
 
@@ -57,3 +60,16 @@ def test_env_check_mock_after_install():
     out = make_env_check_tool(ctx).handler({})
     assert "0.5.2" in out
     assert "COM" in out or "ttyACM" in out
+
+
+def test_register_rejects_duplicate_key():
+    dup = ProductProfile(key="so101", name="重复档案", description="", phases={}, faqs=[])
+    with pytest.raises(ValueError, match="重复注册"):
+        register(dup)
+    assert PRODUCTS["so101"].name == "SO-101 机械臂"  # 原档案未被覆盖
+
+
+def test_find_port_output_detection():
+    assert _has_port_listing("CRITICAL:find-port: Found 2 ports:\n[0] COM3 [FEETECH] (available)")
+    assert not _has_port_listing("CRITICAL:find-port: No ports found")
+    assert not _has_port_listing("")

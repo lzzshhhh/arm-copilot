@@ -54,6 +54,7 @@ def make_workflow_tool() -> Tool:
         description=(
             "查询产品（当前支持 so101）的分阶段部署流程：每一步的做法、确切命令、"
             "验证方式与排障要点。回答操作类问题前应先查询本工具，不要凭记忆编造命令。"
+            "引导用户逐步操作时按 phase 查单个阶段即可（更省上下文），仅在需要全流程总览时用 all。"
         ),
         parameters={
             "type": "object",
@@ -62,7 +63,7 @@ def make_workflow_tool() -> Tool:
                 "phase": {
                     "type": "string",
                     "enum": ["install", "configure", "calibrate", "next", "all"],
-                    "description": "阶段，默认 all",
+                    "description": "要查的阶段；优先查单个阶段，仅在需要总览时用 all（默认）",
                 },
             },
         },
