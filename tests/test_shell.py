@@ -125,3 +125,55 @@ class TestRunCommandTool:
         ctx.mock_state["lerobot"] = "0.5.2"
         out = make_run_command_tool(ctx).handler({"command": "python -m pip show lerobot", "reason": ""})
         assert "0.5.2" in out
+
+
+class TestMockNextPhase:
+    def test_help_is_safe(self):
+        assert classify_risk("lerobot-record --help") == "safe"
+        assert classify_risk("lerobot-teleoperate -h") == "safe"
+        # 非 help 形式仍按原规则分级
+        assert classify_risk("lerobot-record --dataset.repo_id=x/y") == "hardware"
+
+    def test_help_mock_returns_args_summary(self):
+        tool = make_run_command_tool(ToolContext(mock=True))
+        out = tool.handler({"command": "lerobot-record --help", "reason": ""})
+        assert "--dataset.repo_id" in out
+        assert "--cameras" in out
+
+    def test_record_mock(self):
+        tool = make_run_command_tool(ToolContext(mock=True, approve=lambda *a: True))
+        out = tool.handler({
+            "command": "lerobot-record --robot.type=so101_follower --robot.port=COM3 "
+                       "--teleop.type=so101_leader --teleop.port=COM4 "
+                       "--dataset.repo_id=user/demo --num-episodes=10",
+            "reason": "采集",
+        })
+        assert "user/demo" in out
+        assert "未配置相机" in out
+        assert "episode" in out
+
+    def test_record_mock_with_cameras(self):
+        tool = make_run_command_tool(ToolContext(mock=True, approve=lambda *a: True))
+        out = tool.handler({
+            "command": "lerobot-record --robot.port=COM3 --teleop.port=COM4 "
+                       "--dataset.repo_id=user/demo --cameras.type=opencv --cameras.index=0",
+            "reason": "采集",
+        })
+        assert "相机" in out
+        assert "opencv" in out
+
+    def test_train_mock_checkpoint(self):
+        tool = make_run_command_tool(ToolContext(mock=True, approve=lambda *a: True))
+        out = tool.handler({
+            "command": "lerobot-train --policy.type=act --dataset.repo_id=user/demo",
+            "reason": "训练",
+        })
+        assert "outputs/train/act/checkpoints" in out
+
+    def test_eval_mock(self):
+        tool = make_run_command_tool(ToolContext(mock=True, approve=lambda *a: True))
+        out = tool.handler({
+            "command": "lerobot-eval --policy.path=outputs/train/act/checkpoints/last",
+            "reason": "评估",
+        })
+        assert "checkpoint" in out

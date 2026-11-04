@@ -65,6 +65,8 @@ def validate(command: str) -> tuple[bool, str]:
 
 def classify_risk(command: str) -> str:
     cmd = command.strip().lower()
+    if cmd.endswith(("--help", "-h")):
+        return RISK_SAFE  # 查看帮助不驱动电机、不改动环境
     if cmd.startswith(_HARDWARE_PREFIXES):
         return RISK_HARDWARE
     if cmd.startswith(_HEAVY_PREFIXES):
@@ -108,6 +110,39 @@ def _mock_ports() -> str:
 
 _PYTHON_M_PIP = re.compile(r"^python3?\s+-m\s+pip\b")
 
+# --help 模拟：只给组命令所需的关键参数摘要，不求与真实输出一致
+_MOCK_HELP_ARGS = {
+    "lerobot-record": (
+        "--robot.type so101_follower --robot.port PORT\n"
+        "  --teleop.type so101_leader --teleop.port PORT\n"
+        "  --dataset.repo_id 用户名/数据集名 --num-episodes N\n"
+        "  相机（可选，每个相机一组）：--cameras.type opencv --cameras.index=0\n"
+        "  其他常用：--fps 30 --push-to-hub --resume"
+    ),
+    "lerobot-train": (
+        "--policy.type act / diffusion / smolvla\n"
+        "  --dataset.repo_id 用户名/数据集名\n"
+        "  产出 checkpoint 于 outputs/train/<policy>/checkpoints/，评估用 --policy.path 加载"
+    ),
+    "lerobot-eval": (
+        "--robot.type so101_follower --robot.port PORT\n"
+        "  --policy.path outputs/train/act/checkpoints/last"
+    ),
+    "lerobot-teleoperate": (
+        "--robot.type so101_follower --robot.port PORT\n"
+        "  --teleop.type so101_leader --teleop.port PORT"
+    ),
+    "lerobot-calibrate": (
+        "--robot.type so101_follower --robot.port PORT（leader 臂用 --teleop.type / --teleop.port）"
+    ),
+}
+
+
+def _mock_help(command: str) -> str:
+    key = command.split()[0]
+    body = _MOCK_HELP_ARGS.get(key, "（未收录该子命令的摘要，请参考 LeRobot 官方文档）")
+    return f"usage: {key} [-h]\n[mock] 关键参数摘要：\n  {body}"
+
 
 def mock_run(command: str, state: dict) -> tuple[int, str, str]:
     """按命令模式返回模拟输出；state 记录 mock 环境的安装状态（如 lerobot 是否已装）。"""
@@ -143,6 +178,9 @@ def mock_run(command: str, state: dict) -> tuple[int, str, str]:
                 "Successfully installed feetech-sdk-1.0.3 lerobot-0.5.2"
             ), ""
         return 0, "Successfully installed (mock)", ""
+
+    if low.startswith("lerobot-") and low.endswith(("--help", "-h")):
+        return 0, _mock_help(low), ""
 
     if low.startswith("lerobot-find-port"):
         if not state.get("lerobot"):
@@ -182,6 +220,39 @@ def mock_run(command: str, state: dict) -> tuple[int, str, str]:
             "Teleoperation started — 移动 leader 臂，follower 将同步跟随（Ctrl+C 退出）。\n"
             "[mock] 已模拟 10 秒遥操作，关节同步正常。"
         ), ""
+
+    if low.startswith("lerobot-record"):
+        m = re.search(r"--dataset\.repo_id[= ](\S+)", cmd)
+        repo = m.group(1) if m else "你的用户名/数据集名"
+        m = re.search(r"--num-episodes[= ](\d+)", cmd)
+        total = m.group(1) if m else "50"
+        cams = (
+            "已连接 opencv 相机（--cameras 参数生效）" if "--cameras" in low
+            else "未配置相机，仅录制关节与夹爪状态"
+        )
+        return 0, "\n".join([
+            f"Connecting so101_follower <-> so101_leader ... 相机检查：{cams}",
+            f"Recording episode 0/{total} ... 数据保存至 ~/.cache/huggingface/lerobot/datasets/{repo}",
+            f"[mock] 已模拟录制 3/{total} 条 episode，Ctrl+C 可随时中止；完成后可回放检查数据质量。",
+        ]), ""
+
+    if low.startswith("lerobot-train"):
+        m = re.search(r"--policy\.type[= ](\S+)", low)
+        policy = m.group(1) if m else "act"
+        return 0, "\n".join([
+            f"Loading dataset ... policy={policy}",
+            "step 100/500  loss=0.412",
+            "step 500/500  loss=0.108",
+            f"训练完成，checkpoint 已保存：outputs/train/{policy}/checkpoints/last",
+            "[mock] 真实模式下该命令长时间占用资源（risky 级，需确认）。",
+        ]), ""
+
+    if low.startswith(("lerobot-eval", "lerobot-rollout")):
+        return 0, "\n".join([
+            "加载 checkpoint：outputs/train/act/checkpoints/last",
+            "评估 episode 1：任务完成度 82%（mock 演示数值）",
+            "[mock] 真实模式下机械臂会按策略运动，请保持工作区安全。",
+        ]), ""
 
     return 0, f"[mock] 已模拟执行：{cmd}", ""
 
