@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🤖 臂管家 · SO-101 配置小助手</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- ===== 顶栏 ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🤖</span>
+      <div>
+        <div class="brand-name">臂管家</div>
+        <div class="brand-sub">SO-101 机械臂配置小助手</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="mockBadge" class="badge badge-mock" hidden>🎭 模拟模式</span>
+      <span id="realBadge" class="badge badge-real" hidden>⚠️ 真实模式</span>
+      <button id="resetBtn" class="btn btn-ghost btn-sm">🔄 重新开始</button>
+    </div>
+  </header>
+
+  <!-- ===== 标签页 ===== -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="wizard"><span class="tab-emoji">🪄</span> 配置向导</button>
+    <button class="tab" data-tab="chat"><span class="tab-emoji">💬</span> 问一问</button>
+  </nav>
+
+  <main class="page">
+    <!-- ===== 标签 1：配置向导 ===== -->
+    <section id="tab-wizard" class="tabpanel">
+      <!-- 闯关进度 -->
+      <div class="card hero">
+        <div class="hero-top">
+          <h2>🏆 闯关进度</h2>
+          <span id="progressText" class="progress-text">0 / 13</span>
+        </div>
+        <div class="bar"><div id="progressFill" class="bar-fill" style="width:0%"></div></div>
+        <div id="phaseChips" class="chips"></div>
+      </div>
+
+      <!-- 体检 + 端口 + 采集设置 -->
+      <div class="row2">
+        <div class="card">
+          <h3>🩺 环境体检</h3>
+          <p class="card-desc">先检查一下电脑准备好了没（Python、LeRobot、串口）</p>
+          <button id="envBtn" class="btn btn-blue">开始体检</button>
+          <pre id="envOut" class="mini-console" hidden></pre>
+        </div>
+        <div class="card">
+          <h3>🔌 端口设置</h3>
+          <p class="card-desc">跑第二关前两步会自动识别并填好端口（识别到唯一端口时自动保存）；两臂同时在线时会给出候选，点一下即可填入</p>
+          <div class="port-row">
+            <label>从动臂 follower<br /><input id="portFollower" placeholder="如 COM3" /></label>
+            <label>主动臂 leader<br /><input id="portLeader" placeholder="如 COM4" /></label>
+          </div>
+          <button id="portSaveBtn" class="btn btn-blue">💾 保存端口</button>
+          <button id="portSwapBtn" class="btn btn-ghost btn-sm">🔄 对调两个端口</button>
+          <div id="portChips" class="chips"></div>
+        </div>
+        <div class="card">
+          <h3>📼 数据采集设置</h3>
+          <p class="card-desc">第四关采集前填一次。数据集名称用「用户名/数据集名」（只存本机不上传的话，用户名随便起）；数量建议 20–50 起步。<b>ACT 训练需要相机</b>——勾选启用后数据会带图像</p>
+          <div class="servo-row">
+            <label>数据集名称<br /><input id="repoIdInput" placeholder="如 zhangsan/pick_cube" /></label>
+            <label>采集数量<br /><input id="episodesInput" inputmode="numeric" value="50" style="max-width:100px" /></label>
+            <label style="display:flex;align-items:center;gap:6px;margin-top:22px">
+              <input type="checkbox" id="cameraToggle" style="width:20px;height:20px" /> 启用相机
+            </label>
+            <label>相机编号<br /><input id="cameraIndexInput" inputmode="numeric" value="0" style="max-width:70px" /></label>
+          </div>
+          <p class="card-desc" style="margin-top:6px">相机编号：USB 相机通常 0 或 1（笔记本自带摄像头常占 0）；不对就换一个试</p>
+          <button id="recordSaveBtn" class="btn btn-blue">💾 保存采集设置</button>
+        </div>
+      </div>
+
+      <!-- 舵机 ID 工具 -->
+      <div class="card">
+        <h3>🛠️ 舵机 ID 工具（进阶）</h3>
+        <p class="card-desc">修复被改乱的舵机编号：<b>先把要改的那一个舵机单独接在控制板上</b>（其余全部断开），扫描确认只有它在线，填上新 ID 点写入。SO-101 关节对照：底座 1 · 肩 2 · 肩转 3 · 肘 4 · 腕转 5 · 夹爪 6</p>
+        <div class="servo-row">
+          <label>端口<br /><input id="servoPort" placeholder="如 COM11" /></label>
+          <button id="servoScanBtn" class="btn btn-blue">🔎 扫描</button>
+          <label>新 ID<br /><input id="servoNewId" placeholder="1–6" inputmode="numeric" style="max-width:90px" /></label>
+          <button id="servoSetBtn" class="btn btn-orange">✏️ 写入 ID</button>
+        </div>
+        <pre id="servoOut" class="mini-console" hidden></pre>
+      </div>
+
+      <!-- 四个大关卡 -->
+      <div id="phases"></div>
+    </section>
+
+    <!-- ===== 标签 2：问一问 ===== -->
+    <section id="tab-chat" class="tabpanel" hidden>
+      <div class="card chatcard">
+        <div class="chat-head">
+          <h3>💬 问臂管家</h3>
+          <button id="chatResetBtn" class="btn btn-ghost btn-sm">🧹 清空对话</button>
+        </div>
+        <p id="chatHint" class="card-desc" hidden></p>
+        <div id="messages" class="messages">
+          <div class="msg assistant">
+            <div class="avatar">🤖</div>
+            <div class="bubble">你好呀！我是臂管家 🤖 关于 SO-101 机械臂的任何问题都可以问我，比如：<b>「SO-101 是什么？」</b>、<b>「为什么要校准？」</b></div>
+          </div>
+        </div>
+        <div class="chatrow">
+          <input id="chatInput" placeholder="输入你的问题，按回车或点发送…" autocomplete="off" />
+          <button id="sendBtn" class="btn btn-orange">发送 🚀</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== 运行日志抽屉 ===== -->
+  <div id="console" class="console collapsed">
+    <div class="console-head">
+      <span>📋 运行日志</span>
+      <div class="console-actions">
+        <button id="inputBtn" class="btn btn-orange btn-sm" hidden>⏎ 我做好了，继续</button>
+        <button id="reCalBtn" class="btn btn-green btn-sm" hidden>🔄 重新校准（输入 c）</button>
+        <button id="stopBtn" class="btn btn-red btn-sm" hidden>⏹ 停止</button>
+        <button id="consoleToggle" class="btn btn-ghost btn-sm">展开</button>
+      </div>
+    </div>
+    <div id="liveHint" class="live-hint" hidden></div>
+    <pre id="consoleBody"></pre>
+  </div>
+
+  <!-- ===== 确认弹窗 ===== -->
+  <div id="modal" class="overlay" hidden>
+    <div class="modal card">
+      <h3>🚦 动手前，请确认一下</h3>
+      <p id="apReason" class="ap-reason"></p>
+      <pre id="apCommand" class="ap-command"></pre>
+      <div id="apRisk" class="risk-badge"></div>
+      <div id="apWarn" class="warn-box" hidden>
+        ⚠️ 执行后<b>机械臂会真实运动</b>！请确保周围没有人伸手、没有容易碰倒的东西。
+      </div>
+      <div class="modal-btns">
+        <button id="apOk" class="btn btn-green">✅ 确认执行</button>
+        <button id="apNo" class="btn btn-gray">❌ 先不执行</button>
+      </div>
+      <p class="modal-hint">长时间不回应会自动取消（10 分钟）</p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
