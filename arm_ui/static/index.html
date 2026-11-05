@@ -75,6 +75,19 @@
           <p class="card-desc" style="margin-top:6px">相机编号：USB 相机通常 0 或 1（笔记本自带摄像头常占 0）；不对就换一个试</p>
           <button id="recordSaveBtn" class="btn btn-blue">💾 保存采集设置</button>
         </div>
+        <div class="card">
+          <h3>🎯 训练设置</h3>
+          <p class="card-desc">第四关训练前确认一次。步数越多学得越充分也越慢：本机 CPU 建议 1000–3000 步先看到 loss 下降；GPU 显示可用时可切换加速</p>
+          <div class="servo-row">
+            <label>训练步数<br /><input id="stepsInput" inputmode="numeric" value="3000" style="max-width:100px" /></label>
+            <label>Batch Size<br /><input id="batchInput" inputmode="numeric" value="16" style="max-width:90px" /></label>
+            <label>训练设备<br /><select id="deviceSelect">
+              <option value="cpu">CPU</option>
+              <option value="cuda">GPU (CUDA)——检测中…</option>
+            </select></label>
+          </div>
+          <button id="trainSaveBtn" class="btn btn-blue">💾 保存训练设置</button>
+        </div>
       </div>
 
       <!-- 舵机 ID 工具 -->
