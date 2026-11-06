@@ -358,6 +358,20 @@ class TestTeleoperateStopIsDone:
         eng.run_step("calibrate.2")
         assert eng.statuses["calibrate.2"] == ST_DONE
 
+    def test_user_stop_on_rollout_counts_as_done(self, tmp_path, monkeypatch):
+        """评估（lerobot-rollout）被用户停止 = 正常完成。"""
+        from arm_ui import flow as flow_mod
+
+        eng = make_engine(tmp_path)
+        monkeypatch.setattr(flow_mod, "run_mock_streaming", lambda *a, **k: (130, "会话被中断", ""))
+        eng.set_ports("COM3", "COM4")
+        for sid in eng.order[:-1]:
+            eng.statuses[sid] = ST_DONE
+        eng.statuses["next.2"] = ST_PENDING
+        eng._user_stopped = True  # 模拟用户点了「停止」
+        eng.run_step("next.2")
+        assert eng.statuses["next.2"] == ST_DONE
+
 
 class TestRecordConfig:
     def test_validation(self, tmp_path):
@@ -536,6 +550,8 @@ class TestInstallPatch:
         assert "index_or_path: 1" in ev
         # policy.path 必须指到 pretrained_model 子目录（0.6 checkpoint 结构）
         assert "--policy.path=outputs/train/act/checkpoints/last/pretrained_model" in ev
+        # rollout 默认无限跑，必须限时让它能自己正常结束
+        assert "--duration=120" in ev
 
     def test_camera_disabled_no_camera_arg(self, tmp_path):
         eng = make_engine(tmp_path)

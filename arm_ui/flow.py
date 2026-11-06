@@ -483,6 +483,10 @@ class FlowEngine:
                     r"\1/pretrained_model",
                     command,
                 )
+            # rollout 默认 --duration=0 是无限跑（24/7 模式），新手评估会
+            # 永远停不下来；限时 2 分钟自动正常结束（中途点停止也算完成）
+            if "--duration" not in command:
+                command += " --duration=120"
             if use_cam and "--robot.cameras" not in command:
                 command += " " + self._camera_arg()
             return command
@@ -826,10 +830,12 @@ class FlowEngine:
                     self._finish(step_id, ST_DONE)
                     return
             if code != 0:
-                # 遥操作这类"会话型"命令本来就要手动结束：用户点停止 = 正常完成
-                if self._user_stopped and cmd.lower().startswith("lerobot-teleoperate"):
+                # 遥操作/评估这类"会话型"命令本来就要手动结束：用户点停止 = 正常完成
+                if self._user_stopped and cmd.lower().startswith(
+                    ("lerobot-teleoperate", "lerobot-rollout")
+                ):
                     self._log_run(
-                        f"\n> {time.strftime('%H:%M:%S')} 遥操作会话由用户正常结束，视为完成\n"
+                        f"\n> {time.strftime('%H:%M:%S')} 会话由用户正常结束，视为完成\n"
                     )
                     self._finish(step_id, ST_DONE)
                     return
