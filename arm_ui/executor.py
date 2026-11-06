@@ -38,6 +38,16 @@ def _child_env() -> dict:
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
     env["HF_HUB_OFFLINE"] = "1"
+    # PATH 补全：服务若由未激活 venv 的终端启动（如直接 python arm_ui/app.py），
+    # 子进程 shell 找不到 lerobot-train 等命令，报"不是内部或外部命令"。
+    # 把当前解释器目录与项目根 .venv/Scripts 都补到 PATH 最前（存在与否无害）。
+    exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    project_venv = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        ".venv", "Scripts",
+    )
+    extras = [exe_dir, project_venv, os.path.join(exe_dir, "Scripts")]
+    env["PATH"] = os.pathsep.join(dict.fromkeys(extras + [env.get("PATH", "")]))
     return env
 
 # Web UI 的超时预算比 CLI 更宽：pip 装 torch、真机训练/采集都远超 15/30 分钟。
