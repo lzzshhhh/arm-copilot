@@ -280,12 +280,20 @@ class TestEnvCheck:
 class TestRecordConfigApi:
     def test_get_set_roundtrip(self, client):
         c, _ = client
-        r = c.post("/api/record-config", json={"repo_id": "demo/pick", "num_episodes": 20, "camera": True, "camera_index": 1})
+        r = c.post("/api/record-config", json={"repo_id": "demo/pick", "num_episodes": 20, "camera": True, "camera_index": 1,
+                                               "camera2": True, "camera2_index": 2})
         assert r.status_code == 200
         body = r.json()
         assert body["repo_id"] == "demo/pick" and body["num_episodes"] == 20
         assert body["camera"] is True and body["camera_index"] == 1
+        assert body["camera2"] is True and body["camera2_index"] == 2
         assert c.get("/api/record-config").json()["repo_id"] == "demo/pick"
+
+    def test_camera2_requires_camera_400(self, client):
+        c, _ = client
+        r = c.post("/api/record-config", json={"repo_id": "demo/pick", "num_episodes": 20,
+                                               "camera": False, "camera2": True})
+        assert r.status_code == 400
 
     def test_invalid_repo_400(self, client):
         c, _ = client

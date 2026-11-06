@@ -235,6 +235,9 @@ function rerenderWizard() {
   if (document.activeElement !== $("episodesInput")) $("episodesInput").value = rc.num_episodes ?? 50;
   $("cameraToggle").checked = !!rc.camera;
   if (document.activeElement !== $("cameraIndexInput")) $("cameraIndexInput").value = rc.camera_index ?? 0;
+  $("camera2Toggle").checked = !!rc.camera2;
+  if (document.activeElement !== $("camera2IndexInput")) $("camera2IndexInput").value = rc.camera2_index ?? 2;
+  syncCamera2Input();
   const tc = S.progress.train_config || {};
   if (document.activeElement !== $("stepsInput")) $("stepsInput").value = tc.steps ?? 3000;
   if (document.activeElement !== $("batchInput")) $("batchInput").value = tc.batch_size ?? 16;
@@ -719,17 +722,23 @@ async function init() {
     const n = parseInt($("episodesInput").value, 10);
     const cam = $("cameraToggle").checked;
     const ci = parseInt($("cameraIndexInput").value, 10) || 0;
+    const cam2 = $("camera2Toggle").checked;
+    const ci2 = parseInt($("camera2IndexInput").value, 10) || 2;
     if (!repo) { toast("数据集名称没填（格式：用户名/数据集名）", true); return; }
     if (!Number.isInteger(n) || n < 1 || n > 1000) { toast("采集数量填 1–1000 的整数", true); return; }
+    if (cam2 && !cam) { toast("双视角需要先勾选「启用相机」", true); return; }
+    if (cam2 && ci2 === ci) { toast("两个相机的编号不能相同", true); return; }
     try {
       await api("/api/record-config", {
         method: "POST",
-        body: JSON.stringify({ repo_id: repo, num_episodes: n, camera: cam, camera_index: ci }),
+        body: JSON.stringify({ repo_id: repo, num_episodes: n, camera: cam, camera_index: ci, camera2: cam2, camera2_index: ci2 }),
       });
       toast("💾 采集设置已保存");
       refreshProgress().catch(() => {});
     } catch (e) { toast(e.message, true); }
   };
+  function syncCamera2Input() { $("camera2IndexInput").disabled = !$("camera2Toggle").checked; }
+  $("camera2Toggle").onchange = syncCamera2Input;
 
   /* 舵机 ID 工具 */
   const servoShow = (text) => { $("servoOut").hidden = false; $("servoOut").textContent = text; };

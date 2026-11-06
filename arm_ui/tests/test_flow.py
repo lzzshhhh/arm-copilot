@@ -380,8 +380,33 @@ class TestRecordConfig:
             eng.set_record_config("no-slash", 20)   # 缺少 用户名/ 前缀
         with pytest.raises(FlowError):
             eng.set_record_config("a/b", 0)          # 数量越界
+        with pytest.raises(FlowError):
+            # 双视角依赖第一相机
+            eng.set_record_config("a/b", 5, camera=False, camera2=True)
+        with pytest.raises(FlowError):
+            # 两个相机同号
+            eng.set_record_config("a/b", 5, camera=True, camera_index=1, camera2=True, camera2_index=1)
         ok = eng.set_record_config("zhangsan/pick_cube", 30)
         assert ok["repo_id"] == "zhangsan/pick_cube" and ok["num_episodes"] == 30
+        assert ok["camera2"] is False and ok["camera2_index"] == 2  # 新字段有默认值
+
+    def test_dual_camera_args_in_record_and_eval(self, tmp_path):
+        """双视角：采集与评估命令都带 cam_0+cam_1；单视角只带 cam_0。"""
+        eng = make_engine(tmp_path)
+        eng.set_ports("COM3", "COM4")
+        eng.set_record_config("zhangsan/box", 5, camera=True, camera_index=1,
+                              camera2=True, camera2_index=2)
+        rec = eng._apply_record_config("lerobot-record --dataset.repo_id=你的用户名/数据集名")
+        assert "cam_0: {type: opencv, index_or_path: 1" in rec
+        assert "cam_1: {type: opencv, index_or_path: 2" in rec
+        ev = eng._apply_record_config("lerobot-eval --policy.path=outputs/train/act/checkpoints/last")
+        assert "cam_0: {type: opencv, index_or_path: 1" in ev
+        assert "cam_1: {type: opencv, index_or_path: 2" in ev
+
+        # 关掉双视角 → 命令只剩 cam_0
+        eng.set_record_config("zhangsan/box", 5, camera=True, camera_index=1)
+        rec2 = eng._apply_record_config("lerobot-record --dataset.repo_id=你的用户名/数据集名")
+        assert "cam_0" in rec2 and "cam_1" not in rec2
 
     def test_substitution_into_command(self, tmp_path):
         eng = make_engine(tmp_path)
@@ -418,10 +443,13 @@ class TestRecordConfig:
 
     def test_persistence_roundtrip(self, tmp_path):
         eng = make_engine(tmp_path)
-        eng.set_record_config("zhangsan/pick_cube", 30)
+        eng.set_record_config("zhangsan/pick_cube", 30, camera=True, camera_index=1,
+                              camera2=True, camera2_index=2)
         eng2 = make_engine(tmp_path)
         assert eng2.record_config["repo_id"] == "zhangsan/pick_cube"
         assert eng2.record_config["num_episodes"] == 30
+        assert eng2.record_config["camera2"] is True
+        assert eng2.record_config["camera2_index"] == 2
 
 
 class TestInstallPatch:

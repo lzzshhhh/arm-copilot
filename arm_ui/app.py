@@ -58,6 +58,8 @@ class RecordConfigBody(BaseModel):
     num_episodes: int = 50
     camera: bool = False
     camera_index: int = 0
+    camera2: bool = False
+    camera2_index: int = 2
 
 
 class TrainConfigBody(BaseModel):
@@ -148,7 +150,9 @@ def create_app(state: AppState) -> FastAPI:
     def set_record_config(body: RecordConfigBody) -> dict:
         try:
             return state.flow.set_record_config(
-                body.repo_id, body.num_episodes, camera=body.camera, camera_index=body.camera_index
+                body.repo_id, body.num_episodes,
+                camera=body.camera, camera_index=body.camera_index,
+                camera2=body.camera2, camera2_index=body.camera2_index,
             )
         except FlowError as e:
             raise HTTPException(status_code=400, detail=str(e))

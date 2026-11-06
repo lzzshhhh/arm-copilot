@@ -271,7 +271,11 @@ class FlowEngine:
         self.statuses: dict[str, str] = {}
         self.updated_at: dict[str, float] = {}
         self.ports = {"follower": "", "leader": ""}
-        self.record_config: dict = {"repo_id": "", "num_episodes": 50, "camera": False, "camera_index": 0}
+        self.record_config: dict = {
+            "repo_id": "", "num_episodes": 50,
+            "camera": False, "camera_index": 0,
+            "camera2": False, "camera2_index": 2,
+        }
         self.train_config: dict = {"steps": 3000, "batch_size": 16, "device": "cpu"}
 
         # 展开成有序步骤表（configure 在位置 1 注入 leader 端口识别步骤）
@@ -363,11 +367,14 @@ class FlowEngine:
         if isinstance(rc, dict):
             n = rc.get("num_episodes")
             ci = rc.get("camera_index")
+            ci2 = rc.get("camera2_index")
             self.record_config = {
                 "repo_id": str(rc.get("repo_id") or ""),
                 "num_episodes": n if isinstance(n, int) and 1 <= n <= 1000 else 50,
                 "camera": bool(rc.get("camera", False)),
                 "camera_index": ci if isinstance(ci, int) and 0 <= ci <= 9 else 0,
+                "camera2": bool(rc.get("camera2", False)),
+                "camera2_index": ci2 if isinstance(ci2, int) and 0 <= ci2 <= 9 else 2,
             }
         tc = data.get("train_config") or {}
         if isinstance(tc, dict):
@@ -382,7 +389,10 @@ class FlowEngine:
 
     # ---------------- 采集参数 ----------------
 
-    def set_record_config(self, repo_id: str, num_episodes, camera=False, camera_index=0) -> dict:
+    def set_record_config(
+        self, repo_id: str, num_episodes, camera=False, camera_index=0,
+        camera2=False, camera2_index=2,
+    ) -> dict:
         repo_id = (repo_id or "").strip()
         if repo_id and ("/" not in repo_id or " " in repo_id):
             raise FlowError("数据集名称格式：用户名/数据集名（如 zhangsan/pick_cube，不含空格）")
@@ -398,9 +408,21 @@ class FlowEngine:
             ci = 0
         if not 0 <= ci <= 9:
             raise FlowError("相机编号请填 0–9 的整数")
+        try:
+            ci2 = int(camera2_index)
+        except (TypeError, ValueError):
+            ci2 = 2
+        if not 0 <= ci2 <= 9:
+            raise FlowError("第二相机编号请填 0–9 的整数")
+        camera2 = bool(camera2)
+        if camera2 and not camera:
+            raise FlowError("开启第二相机前请先勾选「启用相机」（双视角 = 相机1 + 相机2）")
+        if camera2 and ci2 == ci:
+            raise FlowError("两个相机的编号不能相同")
         with self._lock:
             self.record_config = {"repo_id": repo_id, "num_episodes": n,
-                                  "camera": bool(camera), "camera_index": ci}
+                                  "camera": bool(camera), "camera_index": ci,
+                                  "camera2": camera2, "camera2_index": ci2}
             result = dict(self.record_config)
         self._save()
         self.bus.publish("record_config_updated", result)
@@ -429,14 +451,20 @@ class FlowEngine:
         return result
 
     def _camera_arg(self) -> str:
-        ci = self.record_config.get("camera_index") or 0
+        cfg = self.record_config
         # 640×480：SO-101 + lerobot 生态的标准采集分辨率（相机原生输出、
         # 官方教程与社区数据集一致）。CPU 训练嫌慢时的降级选项是 320×240
-        #（解码提速约 4 倍，代价是细节损失，只建议冒烟阶段用）
-        return (
-            f'--robot.cameras="{{cam_0: {{type: opencv, index_or_path: {ci}, '
-            f'width: 640, height: 480, fps: 30}}}}"'
-        )
+        #（解码提速约 4 倍，代价是细节损失，只建议冒烟阶段用）。
+        # 键名 cam_0/cam_1 会成为数据集的 observation.images.cam_0/cam_1，
+        # 采集与评估必须用相同的键名组合，策略输入特征才对得上。
+        def _one(key: str, idx: int) -> str:
+            return (f"{key}: {{type: opencv, index_or_path: {idx}, "
+                    f"width: 640, height: 480, fps: 30}}")
+
+        parts = [_one("cam_0", cfg.get("camera_index") or 0)]
+        if cfg.get("camera2"):
+            parts.append(_one("cam_1", cfg.get("camera2_index") or 2))
+        return "--robot.cameras=\"{" + ", ".join(parts) + "}\""
 
     def _resolve_local_dataset(self, repo_id: str) -> str:
         """解析本地实际数据集目录名。
