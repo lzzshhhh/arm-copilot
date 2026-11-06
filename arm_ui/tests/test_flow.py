@@ -544,7 +544,7 @@ class TestTrainConfig:
     def test_set_and_validate(self, tmp_path):
         eng = make_engine(tmp_path)
         with pytest.raises(FlowError):
-            eng.set_train_config(10, 16)          # 步数太少
+            eng.set_train_config(0, 16)           # 步数太少（冒烟下限 1）
         with pytest.raises(FlowError):
             eng.set_train_config(3000, 0)         # batch 越界
         ok = eng.set_train_config(5000, 32, "cuda")

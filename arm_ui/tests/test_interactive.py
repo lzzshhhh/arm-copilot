@@ -297,4 +297,6 @@ class TestTrainConfigApi:
         r = c.post("/api/train-config", json={"steps": 2000, "batch_size": 8, "device": "cpu"})
         assert r.status_code == 200 and r.json()["steps"] == 2000
         r = c.post("/api/train-config", json={"steps": 5, "batch_size": 8, "device": "cpu"})
+        assert r.status_code == 200  # 1–5 步合法：仅用于流程冒烟
+        r = c.post("/api/train-config", json={"steps": 0, "batch_size": 8, "device": "cpu"})
         assert r.status_code == 400

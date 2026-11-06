@@ -360,8 +360,8 @@ class FlowEngine:
             s = int(steps)
         except (TypeError, ValueError):
             raise FlowError("训练步数请填整数")
-        if not 100 <= s <= 1000000:
-            raise FlowError("训练步数请填 100–1000000（小数据集 2000–5000 足够）")
+        if not 1 <= s <= 1000000:
+            raise FlowError("训练步数请填 1–1000000（正经训练 2000–5000 起步，1–5 步仅用于流程冒烟）")
         try:
             b = int(batch_size)
         except (TypeError, ValueError):

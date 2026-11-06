@@ -706,7 +706,7 @@ async function init() {
     const s = parseInt($("stepsInput").value, 10);
     const b = parseInt($("batchInput").value, 10);
     const dev = $("deviceSelect").value;
-    if (!Number.isInteger(s) || s < 100 || s > 1000000) { toast("训练步数填 100–1000000", true); return; }
+    if (!Number.isInteger(s) || s < 1 || s > 1000000) { toast("训练步数填 1–1000000", true); return; }
     if (!Number.isInteger(b) || b < 1 || b > 256) { toast("Batch Size 填 1–256", true); return; }
     try {
       await api("/api/train-config", { method: "POST", body: JSON.stringify({ steps: s, batch_size: b, device: dev }) });
