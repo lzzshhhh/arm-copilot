@@ -147,9 +147,19 @@ function phaseShort(ph) {
   return { install: "安装", configure: "连接", calibrate: "校准", next: "训练" }[ph.key] || ph.key;
 }
 
+/* 前置设置卡片 → 插入位置：对应步骤之前（该步骤的前置条件） */
+const CONFIG_CARDS = [
+  ["envCard", "install.0"],
+  ["portCard", "configure.0"],
+  ["recordCard", "next.0"],
+  ["trainCard", "next.1"],
+];
+
 function renderPhases() {
   const p = S.progress;
   const wrap = $("phases");
+  // 卡片先撤回仓库：phases 重建 innerHTML 会销毁留在里面的节点（连带丢失事件绑定）
+  for (const [cardId] of CONFIG_CARDS) $("configStore").appendChild($(cardId));
   wrap.innerHTML = "";
   for (const ph of S.profile.product.phases) {
     const sts = ph.steps.map((s) => (p.steps[s.id] || {}).status || "pending");
@@ -166,6 +176,14 @@ function renderPhases() {
       </div>`;
     for (const step of ph.steps) sec.appendChild(renderStep(step));
     wrap.appendChild(sec);
+  }
+  placeConfigCards();
+}
+
+function placeConfigCards() {
+  for (const [cardId, stepId] of CONFIG_CARDS) {
+    const target = document.getElementById("step-" + stepId.replace(".", "-"));
+    if (target) target.parentNode.insertBefore($(cardId), target);
   }
 }
 
