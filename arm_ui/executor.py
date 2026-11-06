@@ -62,10 +62,15 @@ _TIMEOUTS_UI = {
 # 按风险等级的 1 小时看门狗会把正常训练拦腰杀掉，单独立预算
 _TRAIN_TIMEOUT_UI = 6 * 3600
 
+# CUDA 版 torch 安装例外：wheel 约 2.5GB，慢网络下 1 小时看门狗可能不够
+_INSTALL_CUDA_TIMEOUT_UI = 3 * 3600
+
 
 def _timeout_for(command: str, risk: str) -> int:
     if command.strip().lower().startswith("lerobot-train"):
         return _TRAIN_TIMEOUT_UI
+    if "download.pytorch.org" in command:
+        return _INSTALL_CUDA_TIMEOUT_UI
     return _TIMEOUTS_UI.get(risk, 300)
 
 

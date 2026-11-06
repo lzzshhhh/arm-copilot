@@ -454,10 +454,14 @@ class TestRecordConfig:
 
 class TestInstallPatch:
     def test_install_command_includes_all_extras(self, tmp_path):
-        """第一关安装命令被补丁为一次装全 4 个附加包（展示与执行一致）。"""
+        """第一关安装命令被补丁为 CUDA 版 torch + 一次装全 4 个附加包。"""
         eng = make_engine(tmp_path)
         payload_cmds = [c for p in eng.profile_payload()["phases"] for s in p["steps"] for c in s["commands"]]
-        assert 'pip install "lerobot[feetech,dataset,training,evaluation]" pynput' in payload_cmds
+        assert any(
+            "download.pytorch.org/whl/cu126" in c and "--extra-index-url" in c
+            and "lerobot[feetech,dataset,training,evaluation]" in c and "pynput" in c
+            for c in payload_cmds
+        ), "安装命令应默认使用 CUDA 版 torch 源"
         assert 'pip install "lerobot[feetech]"' not in payload_cmds
 
     def test_patched_install_passes_whitelist_and_executes(self, tmp_path):

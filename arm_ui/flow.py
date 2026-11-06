@@ -138,8 +138,17 @@ _EPISODES_RE = re.compile(r"--dataset\.num_episodes=\d+")
 # 采集/训练/评估分别还需要 dataset / training / evaluation 附加包，
 # 一次装全，避免后期各步再缺库（arm_ui 层替换，不动原档案）。
 _INSTALL_PATCH_FROM = 'pip install "lerobot[feetech]"'
-# pynput：录制时全局键盘监听（→ 存条 / ← 重录 / ESC 结束），lerobot 不默认安装
-_INSTALL_PATCH_TO = 'pip install "lerobot[feetech,dataset,training,evaluation]" pynput'
+# 默认直接装 CUDA 版 torch：CUDA 版在无 GPU 机器上也能正常用 CPU 训练
+# （只是多占 ~2.5GB 磁盘），有 NVIDIA 卡的机器则开箱即用 GPU 加速。
+# 一条命令双源安装——torch 从 PyTorch 官方 CUDA 源取（PEP 440 中
+# 2.x+cu126 > 2.x，pip 必选 CUDA 版），其余包走 extra-index 的 PyPI；
+# lerobot 依赖的 torch 版本已满足，不会重装回 CPU 版；单条命令也
+# 不触犯白名单对链式连接符（&&）的禁止。
+_INSTALL_PATCH_TO = (
+    "pip install torch --index-url https://download.pytorch.org/whl/cu126 "
+    '--extra-index-url https://pypi.org/simple '
+    '"lerobot[feetech,dataset,training,evaluation]" pynput'
+)
 
 
 def _patch_command(command: str) -> str:
