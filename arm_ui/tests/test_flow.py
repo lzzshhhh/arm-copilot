@@ -533,7 +533,9 @@ class TestInstallPatch:
         assert '--robot.cameras="{cam_0: {type: opencv, index_or_path: 1' in rec
         ev = eng._apply_record_config("lerobot-eval --policy.path=outputs/train/act/checkpoints/last")
         assert ev.startswith("lerobot-rollout --robot.type=so101_follower --robot.port=COM11")
-        assert "index_or_path: 1" in ev and "--policy.path=outputs/train/act/checkpoints/last" in ev
+        assert "index_or_path: 1" in ev
+        # policy.path 必须指到 pretrained_model 子目录（0.6 checkpoint 结构）
+        assert "--policy.path=outputs/train/act/checkpoints/last/pretrained_model" in ev
 
     def test_camera_disabled_no_camera_arg(self, tmp_path):
         eng = make_engine(tmp_path)

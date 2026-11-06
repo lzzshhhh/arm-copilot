@@ -474,6 +474,15 @@ class FlowEngine:
             command = command.replace(
                 "lerobot-eval", f"lerobot-rollout --robot.type=so101_follower --robot.port={port}", 1
             )
+            # lerobot 0.6 checkpoint 结构：config.json / 权重在 pretrained_model
+            # 子目录，--policy.path 必须指到该层（官方 rollout 模板同款），
+            # 指到 last 这层会报 config.json not found
+            if "checkpoints/last" in command and "pretrained_model" not in command:
+                command = re.sub(
+                    r"(--policy\.path=\S*checkpoints/last)",
+                    r"\1/pretrained_model",
+                    command,
+                )
             if use_cam and "--robot.cameras" not in command:
                 command += " " + self._camera_arg()
             return command
