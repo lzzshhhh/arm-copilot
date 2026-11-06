@@ -48,7 +48,7 @@
           <div class="step-icon">🩺</div>
           <div class="step-body">
             <div class="step-title">环境体检 <span class="cfg-badge">⚙️ 前置设置</span></div>
-            <div class="step-detail">先检查一下电脑准备好了没（Python、LeRobot、串口）——装好第一关后再来一次全绿</div>
+            <div class="step-detail">给电脑做个体检：Python 装对没有、LeRobot 齐不齐、能不能看到机械臂的连接口。第一关装完后再来一次，全绿就说明准备就绪</div>
             <button id="envBtn" class="btn btn-blue">开始体检</button>
             <pre id="envOut" class="mini-console" hidden></pre>
           </div>
@@ -56,21 +56,21 @@
         <div class="step config-step" id="motorIdCard">
           <div class="step-icon">🤖</div>
           <div class="step-body">
-            <div class="step-title">电机 ID 状态 <span class="cfg-badge">⚙️ 前置选择</span></div>
-            <div class="step-detail">SO-101 每个舵机需要唯一 ID（1–6）。<b>出厂已拼装好的机械臂通常已经设置过</b>，ID 永久保存在舵机里；只有<b>从零自行组装</b>的才需要设置。你的机械臂是哪种？</div>
-            <button id="motorSkipBtn" class="btn btn-blue">🏭 出厂已激活，跳过 ID 设置</button>
-            <button id="motorKeepBtn" class="btn btn-ghost">🔧 从零组装，需要设置</button>
+            <div class="step-title">电机编号状态 <span class="cfg-badge">⚙️ 前置选择</span></div>
+            <div class="step-detail">每个关节的电机要有自己的编号（1–6），电脑才分得清谁是谁。<b>出厂已拼装好的机械臂通常已经编好号</b>，而且编号永久存在电机里不会丢；只有<b>从零自己组装</b>的才需要编号。你的机械臂是哪种？</div>
+            <button id="motorSkipBtn" class="btn btn-blue">🏭 出厂装好的，跳过编号</button>
+            <button id="motorKeepBtn" class="btn btn-ghost">🔧 自己组装的，需要编号</button>
             <div id="motorIdState" class="step-detail" style="margin-top:8px"></div>
           </div>
         </div>
         <div class="step config-step" id="portCard">
           <div class="step-icon">🔌</div>
           <div class="step-body">
-            <div class="step-title">端口设置 <span class="cfg-badge">⚙️ 前置设置</span></div>
-            <div class="step-detail">跑第二关前两步会自动识别并填好端口（识别到唯一端口时自动保存）；两臂同时在线时会给出候选，点一下即可填入</div>
+            <div class="step-title">连接口设置 <span class="cfg-badge">⚙️ 前置设置</span></div>
+            <div class="step-detail">连接口（端口）就是电脑认机械臂的「门牌号」，比如 COM11。跑下面前两步会自动识别并填好；两只臂同时在线时会出现候选，点一下即可。也可以手动填</div>
             <div class="port-row">
-              <label>从动臂 follower<br /><input id="portFollower" placeholder="如 COM3" /></label>
-              <label>主动臂 leader<br /><input id="portLeader" placeholder="如 COM4" /></label>
+              <label>从动臂 follower（跟着动的）<br /><input id="portFollower" placeholder="如 COM11" /></label>
+              <label>主动臂 leader（你手握的）<br /><input id="portLeader" placeholder="如 COM12" /></label>
             </div>
             <button id="portSaveBtn" class="btn btn-blue">💾 保存端口</button>
             <button id="portSwapBtn" class="btn btn-ghost btn-sm">🔄 对调两个端口</button>
@@ -81,20 +81,20 @@
           <div class="step-icon">📼</div>
           <div class="step-body">
             <div class="step-title">数据采集设置 <span class="cfg-badge">⚙️ 前置设置</span></div>
-            <div class="step-detail">第四关采集前填一次。数据集名称用「用户名/数据集名」（只存本机不上传的话，用户名随便起）；数量建议 20–50 起步。<b>ACT 训练需要相机</b>——勾选启用后数据会带图像；需要双视角（两个相机互补视角，效果更好）再勾选第二相机</div>
+            <div class="step-detail">采集 = 你演示、电脑录制，是机器人的「教材」。名称用「用户名/数据集名」（只存本机的话用户名随便起）；条数 20–50 条起步。<b>机器人学习时要「看」画面，所以要开相机</b>；想让它看得更准，可以再开一路相机（双视角）</div>
             <div class="servo-row">
               <label>数据集名称<br /><input id="repoIdInput" placeholder="如 zhangsan/pick_cube" /></label>
-              <label>采集数量<br /><input id="episodesInput" inputmode="numeric" value="50" style="max-width:100px" /></label>
+              <label>演示条数<br /><input id="episodesInput" inputmode="numeric" value="50" style="max-width:100px" /></label>
               <label style="display:flex;align-items:center;gap:6px;margin-top:22px">
                 <input type="checkbox" id="cameraToggle" style="width:20px;height:20px" /> 启用相机
               </label>
               <label>相机1编号<br /><input id="cameraIndexInput" inputmode="numeric" value="0" style="max-width:70px" /></label>
-              <label style="display:flex;align-items:center;gap:6px;margin-top:22px" title="勾选后可编辑相机2编号，采集与评估将同时使用两路相机">
+              <label style="display:flex;align-items:center;gap:6px;margin-top:22px" title="勾选后可编辑相机2编号，采集与评估会同时使用两路相机">
                 <input type="checkbox" id="camera2Toggle" style="width:20px;height:20px" /> 双视角
               </label>
               <label title="先勾选「双视角」即可编辑">相机2编号<br /><input id="camera2IndexInput" inputmode="numeric" value="2" style="max-width:70px" disabled /></label>
             </div>
-            <div class="step-detail" style="margin-top:6px">相机编号：USB 相机通常 0 或 1（笔记本自带摄像头常占 0）；采集与评估会自动使用相同的相机组合。建议先用 <b>lerobot-find-cameras</b> 抓预览图确认编号对准工作区</div>
+            <div class="step-detail" style="margin-top:6px">相机编号：USB 相机通常是 0 或 1（笔记本自带摄像头常占 0）。⚠️ 一定先确认画面拍的是机械臂工作区再开始采集——在终端跑 <b>lerobot-find-cameras</b> 会把每个编号的预览图存到 outputs/captured_images，看图选编号最保险</div>
             <button id="recordSaveBtn" class="btn btn-blue">💾 保存采集设置</button>
           </div>
         </div>
@@ -102,13 +102,13 @@
           <div class="step-icon">🎯</div>
           <div class="step-body">
             <div class="step-title">训练设置 <span class="cfg-badge">⚙️ 前置设置</span></div>
-            <div class="step-detail">第四关训练前确认一次。默认 <b>3000 步 / Batch 16 / CPU</b>（lerobot 官方默认 10 万步，CPU 上不现实）。跑通流程验证时可临时填小值（如 <b>2 步</b>，约 3 分钟出 checkpoint）；正式训练建议 2000–5000 步</div>
+            <div class="step-detail">训练 = 电脑反复看你的演示，学出一份「动作策略」。默认 <b>3000 步 / 每批 16 / CPU</b>（官方默认 10 万步，普通电脑跑不动）。先跑通流程可临时填 <b>2 步</b>（约 3 分钟出学习成果）；正式训练建议 2000–5000 步</div>
             <div class="servo-row">
               <label>训练步数<br /><input id="stepsInput" inputmode="numeric" value="3000" style="max-width:100px" /></label>
-              <label>Batch Size<br /><input id="batchInput" inputmode="numeric" value="16" style="max-width:90px" /></label>
+              <label>每批数量<br /><input id="batchInput" inputmode="numeric" value="16" style="max-width:90px" /></label>
               <label>训练设备<br /><select id="deviceSelect">
-                <option value="cpu">CPU</option>
-                <option value="cuda">GPU (CUDA)——检测中…</option>
+                <option value="cpu">CPU（处理器）</option>
+                <option value="cuda">GPU（显卡）——检测中…</option>
               </select></label>
             </div>
             <button id="trainSaveBtn" class="btn btn-blue">💾 保存训练设置</button>
@@ -118,8 +118,8 @@
 
       <!-- 舵机 ID 工具 -->
       <div class="card">
-        <h3>🛠️ 舵机 ID 工具（进阶）</h3>
-        <p class="card-desc">修复被改乱的舵机编号：<b>先把要改的那一个舵机单独接在控制板上</b>（其余全部断开），扫描确认只有它在线，填上新 ID 点写入。SO-101 关节对照：底座 1 · 肩 2 · 肩转 3 · 肘 4 · 腕转 5 · 夹爪 6</p>
+        <h3>🛠️ 电机编号工具（进阶）</h3>
+        <p class="card-desc">用来修复被改乱的电机编号：<b>先把要改的那一个电机单独接在控制板上</b>（其余全部断开），扫描确认只有它在线，填上新编号点写入。关节对照：底座 1 · 肩 2 · 肩转 3 · 肘 4 · 腕转 5 · 夹爪 6</p>
         <div class="servo-row">
           <label>端口<br /><input id="servoPort" placeholder="如 COM11" /></label>
           <button id="servoScanBtn" class="btn btn-blue">🔎 扫描</button>
