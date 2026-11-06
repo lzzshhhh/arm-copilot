@@ -192,12 +192,18 @@ def _ensure_last_checkpoint(out: str) -> bool:
     latest = max(numbered, key=lambda d: int(d.name))
     last = ckpt_root / "last"
 
-    if last.exists() and not last.is_symlink():
+    def _only_link_failure() -> bool:
+        return "update_last_checkpoint" in out and "1314" in out
+
+    if last.exists() or last.is_symlink():
         if last.resolve() == latest.resolve():
-            return "update_last_checkpoint" in out and "1314" in out
-        shutil.rmtree(last)  # 旧的真实目录/junction 指错了，重建
-    elif last.is_symlink():
-        last.unlink()
+            # 已指向最新：Linux/macOS 上 lerobot 自己建好的 symlink，不动它
+            return _only_link_failure()
+        # 指错了才清掉重建（真实目录用 rmtree，链接用 unlink）
+        if last.is_dir() and not last.is_symlink():
+            shutil.rmtree(last)
+        else:
+            last.unlink()
 
     if sys.platform == "win32":
         # junction 对目录与 symlink 等效，且创建不需要特权。
@@ -214,7 +220,7 @@ def _ensure_last_checkpoint(out: str) -> bool:
         except OSError:
             linked = False
 
-    return linked and "update_last_checkpoint" in out and "1314" in out
+    return linked and _only_link_failure()
 
 
 class FlowError(Exception):
