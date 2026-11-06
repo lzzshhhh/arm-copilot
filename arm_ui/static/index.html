@@ -71,10 +71,10 @@
               <input type="checkbox" id="cameraToggle" style="width:20px;height:20px" /> 启用相机
             </label>
             <label>相机1编号<br /><input id="cameraIndexInput" inputmode="numeric" value="0" style="max-width:70px" /></label>
-            <label style="display:flex;align-items:center;gap:6px;margin-top:22px">
+            <label style="display:flex;align-items:center;gap:6px;margin-top:22px" title="勾选后可编辑相机2编号，采集与评估将同时使用两路相机">
               <input type="checkbox" id="camera2Toggle" style="width:20px;height:20px" /> 双视角
             </label>
-            <label>相机2编号<br /><input id="camera2IndexInput" inputmode="numeric" value="2" style="max-width:70px" disabled /></label>
+            <label title="先勾选「双视角」即可编辑">相机2编号<br /><input id="camera2IndexInput" inputmode="numeric" value="2" style="max-width:70px" disabled /></label>
           </div>
           <p class="card-desc" style="margin-top:6px">相机编号：USB 相机通常 0 或 1（笔记本自带摄像头常占 0）；采集与评估会自动使用相同的相机组合。建议先用 <b>lerobot-find-cameras</b> 抓预览图确认编号对准工作区</p>
           <button id="recordSaveBtn" class="btn btn-blue">💾 保存采集设置</button>
