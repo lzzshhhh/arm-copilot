@@ -491,6 +491,40 @@ class TestInstallPatch:
         assert not old.exists()
         _rotate_train_dir()  # 目录不存在时安全空转
 
+    def test_ensure_last_checkpoint_creates_junction_and_reports_success(self, tmp_path, monkeypatch):
+        from arm_ui.flow import _ensure_last_checkpoint
+
+        monkeypatch.chdir(tmp_path)
+        ckpt = tmp_path / "outputs/train/act/checkpoints"
+        (ckpt / "000002").mkdir(parents=True)
+        (ckpt / "000002" / "pretrained_model").mkdir()
+
+        # 无 1314 证据（如别的错误）→ 不判成功，但链接仍会兜底补建
+        assert _ensure_last_checkpoint("boom") is False
+        assert (ckpt / "last" / "pretrained_model").exists()
+
+        # 输出证实只死在最后的符号链接（WinError 1314）→ 判成功
+        out = 'File "train_utils.py", line 101, in update_last_checkpoint\nOSError: [WinError 1314]'
+        assert _ensure_last_checkpoint(out) is True
+        last = ckpt / "last"
+        assert last.exists() and (last / "pretrained_model").exists()
+
+        # 幂等：再次调用同样判定成功，链接不重复创建
+        assert _ensure_last_checkpoint(out) is True
+
+    def test_ensure_last_checkpoint_repoints_stale_link(self, tmp_path, monkeypatch):
+        from arm_ui.flow import _ensure_last_checkpoint
+
+        monkeypatch.chdir(tmp_path)
+        ckpt = tmp_path / "outputs/train/act/checkpoints"
+        (ckpt / "000001").mkdir(parents=True)
+        (ckpt / "000002").mkdir(parents=True)
+        (ckpt / "last").mkdir()  # 指向错误目标的旧目录
+        ok = _ensure_last_checkpoint("...update_last_checkpoint... WinError 1314")
+        assert ok is True
+        # last 现在指向最新的 000002
+        assert (ckpt / "last" / ".").samefile(ckpt / "000002")
+
     def test_camera_enabled_appends_to_record_and_eval_becomes_rollout(self, tmp_path):
         eng = make_engine(tmp_path)
         eng.set_ports("COM11", "COM12")

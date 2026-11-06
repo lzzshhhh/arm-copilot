@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import platform
 import re
+import sys
 import threading
 import time
 from pathlib import Path
@@ -170,6 +171,50 @@ def _rotate_train_dir() -> None:
             shutil.move(str(target), str(backup))
         except OSError:
             pass
+
+
+def _ensure_last_checkpoint(out: str) -> bool:
+    """训练后处理：确保 checkpoints/last 指向最新的编号 checkpoint。
+
+    lerobot 结束时会用符号链接创建 last，但 Windows 普通用户权限创建
+    symlink 需要管理员/开发者模式（WinError 1314）——checkpoint 本身
+    其实已保存完整。这里改用 junction（mklink /J，无需任何特权）补建；
+    当输出证实训练只死在最后这步时返回 True，调用方据此把非零退出码
+    视为训练成功。
+    """
+    import shutil
+    import subprocess
+
+    ckpt_root = Path.cwd() / "outputs" / "train" / "act" / "checkpoints"
+    numbered = [d for d in ckpt_root.glob("*") if d.is_dir() and d.name.isdigit()]
+    if not numbered:
+        return False
+    latest = max(numbered, key=lambda d: int(d.name))
+    last = ckpt_root / "last"
+
+    if last.exists() and not last.is_symlink():
+        if last.resolve() == latest.resolve():
+            return "update_last_checkpoint" in out and "1314" in out
+        shutil.rmtree(last)  # 旧的真实目录/junction 指错了，重建
+    elif last.is_symlink():
+        last.unlink()
+
+    if sys.platform == "win32":
+        # junction 对目录与 symlink 等效，且创建不需要特权。
+        # 不读输出：cmd 输出走 GBK 代码页，解码只会白抛异常
+        r = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(last.absolute()), str(latest.absolute())],
+            capture_output=True,
+        )
+        linked = r.returncode == 0
+    else:
+        try:
+            last.symlink_to(latest)
+            linked = True
+        except OSError:
+            linked = False
+
+    return linked and "update_last_checkpoint" in out and "1314" in out
 
 
 class FlowError(Exception):
@@ -754,6 +799,17 @@ class FlowEngine:
             self.bus.publish("cmd_end", {"step": step_id, "command": cmd, "exit_code": code})
             self._log_command(step_id, cmd, code, out, err)
             self._maybe_capture_ports(step_id, cmd, code, out, err)
+            if cmd.startswith("lerobot-train"):
+                # Windows 普通权限建不了 symlink，checkpoint 已完整时补
+                # junction 让 checkpoints/last 可用；仅死在链接这一步的
+                # 训练按成功处理（评估步骤依赖 last 路径）
+                if _ensure_last_checkpoint(out):
+                    self._log_run(
+                        "\n> 训练已完成；last 链接已用 junction 自动补建"
+                        "（Windows 普通权限无法创建符号链接）\n"
+                    )
+                    self._finish(step_id, ST_DONE)
+                    return
             if code != 0:
                 # 遥操作这类"会话型"命令本来就要手动结束：用户点停止 = 正常完成
                 if self._user_stopped and cmd.lower().startswith("lerobot-teleoperate"):
