@@ -245,6 +245,10 @@ function rerenderWizard() {
   updateInteractiveButtons();
 }
 
+/* 双视角开关联动：相机2编号框仅在勾选后可编辑（顶层定义，
+   rerenderWizard 与 init 里的事件绑定都要用到） */
+function syncCamera2Input() { $("camera2IndexInput").disabled = !$("camera2Toggle").checked; }
+
 /* 真实模式下有命令在跑时，显示「继续 / 停止」按钮（find-port、校准都有"按回车"提示） */
 function updateInteractiveButtons() {
   const show = !S.mock && S.progress && S.progress.running_step;
@@ -737,7 +741,6 @@ async function init() {
       refreshProgress().catch(() => {});
     } catch (e) { toast(e.message, true); }
   };
-  function syncCamera2Input() { $("camera2IndexInput").disabled = !$("camera2Toggle").checked; }
   $("camera2Toggle").onchange = syncCamera2Input;
 
   /* 舵机 ID 工具 */
