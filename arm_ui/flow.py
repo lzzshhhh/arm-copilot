@@ -321,7 +321,7 @@ class FlowEngine:
         tc = data.get("train_config") or {}
         if isinstance(tc, dict):
             self.train_config = {
-                "steps": tc.get("steps") if isinstance(tc.get("steps"), int) and 100 <= tc.get("steps") <= 1000000 else 3000,
+                "steps": tc.get("steps") if isinstance(tc.get("steps"), int) and 1 <= tc.get("steps") <= 1000000 else 3000,
                 "batch_size": tc.get("batch_size") if isinstance(tc.get("batch_size"), int) and 1 <= tc.get("batch_size") <= 256 else 16,
                 "device": tc.get("device") if tc.get("device") in ("cpu", "cuda") else "cpu",
             }
