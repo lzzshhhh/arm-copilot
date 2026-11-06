@@ -77,11 +77,23 @@ def create_app(state: AppState) -> FastAPI:
     if _STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
+    # 静态资源不声明缓存策略时，浏览器会自作主张用旧缓存（改了 app.js
+    # 用户却跑着旧校验逻辑）。no-cache = 每次携带 ETag 重新校验，文件
+    # 没变时 304 几乎零开销，变了立即拿新的。
+    @app.middleware("http")
+    async def _static_no_cache(request, call_next):
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     # ---------------- 页面 ----------------
 
     @app.get("/", include_in_schema=False)
     def index() -> FileResponse:
-        return FileResponse(_STATIC_DIR / "index.html")
+        return FileResponse(
+            _STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"}
+        )
 
     # ---------------- 向导 ----------------
 
