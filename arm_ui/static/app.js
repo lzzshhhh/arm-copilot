@@ -151,6 +151,7 @@ function phaseShort(ph) {
 const CONFIG_CARDS = [
   ["envCard", "install.0"],
   ["portCard", "configure.0"],
+  ["motorIdCard", "configure.0"],
   ["recordCard", "next.0"],
   ["trainCard", "next.1"],
 ];
@@ -261,6 +262,23 @@ function rerenderWizard() {
   if (document.activeElement !== $("batchInput")) $("batchInput").value = tc.batch_size ?? 16;
   $("deviceSelect").value = tc.device || "cpu";
   updateInteractiveButtons();
+  renderMotorIdCard();
+}
+
+/* 电机 ID 选择卡：根据两步 ID 设置的当前状态给出提示 */
+function renderMotorIdCard() {
+  const st = (id) => (S.progress.steps[id] || {}).status;
+  const el = $("motorIdState");
+  const s2 = st("configure.2"), s3 = st("configure.3");
+  if (s2 === "skipped" && s3 === "skipped") {
+    el.innerHTML = "✅ 已按「出厂已激活」跳过这两步。如果其实需要设置：到下方对应步骤点 <b>「▶ 仍要执行」</b>即可恢复。";
+  } else if (s2 === "done" && s3 === "done") {
+    el.textContent = "✅ 两臂电机 ID 都已设置完成。";
+  } else if (s2 === "done" || s3 === "done") {
+    el.textContent = "✅ 已设置过一臂的 ID，另一臂按下方步骤继续。";
+  } else {
+    el.textContent = "🤔 不确定选哪个？问一下：舵机出厂或之前设置过 ID（1–6 各不相同）就选跳过——ID 记在舵机里不会丢。";
+  }
 }
 
 /* 双视角开关联动：相机2编号框仅在勾选后可编辑（顶层定义，
@@ -760,6 +778,26 @@ async function init() {
     } catch (e) { toast(e.message, true); }
   };
   $("camera2Toggle").onchange = syncCamera2Input;
+  /* 电机 ID 选择：出厂已激活 → 跳过两步；从零组装 → 按流程走 */
+  $("motorSkipBtn").onclick = async () => {
+    try {
+      for (const sid of ["configure.2", "configure.3"]) {
+        try {
+          await api(`/api/steps/${encodeURIComponent(sid)}/skip`, { method: "POST" });
+        } catch (e) { /* 已跳过/已完成的步骤 409，直接忽略 */ }
+      }
+      toast("已跳过两步电机 ID 设置（出厂已激活模式）");
+      refreshProgress().catch(() => {});
+    } catch (e) { toast(e.message, true); }
+  };
+  $("motorKeepBtn").onclick = () => {
+    const s2 = (S.progress.steps["configure.2"] || {}).status;
+    if (s2 === "skipped") {
+      toast("下方两步目前是「已跳过」，点步骤里的「▶ 仍要执行」即可恢复设置");
+    } else {
+      toast("好的，按流程走：完成上面两步端口识别后，按步骤指引逐个设置 ID");
+    }
+  };
 
   /* 舵机 ID 工具 */
   const servoShow = (text) => { $("servoOut").hidden = false; $("servoOut").textContent = text; };

@@ -53,6 +53,16 @@
             <pre id="envOut" class="mini-console" hidden></pre>
           </div>
         </div>
+        <div class="step config-step" id="motorIdCard">
+          <div class="step-icon">🤖</div>
+          <div class="step-body">
+            <div class="step-title">电机 ID 状态 <span class="cfg-badge">⚙️ 前置选择</span></div>
+            <div class="step-detail">SO-101 每个舵机需要唯一 ID（1–6）。<b>出厂已拼装好的机械臂通常已经设置过</b>，ID 永久保存在舵机里；只有<b>从零自行组装</b>的才需要设置。你的机械臂是哪种？</div>
+            <button id="motorSkipBtn" class="btn btn-blue">🏭 出厂已激活，跳过 ID 设置</button>
+            <button id="motorKeepBtn" class="btn btn-ghost">🔧 从零组装，需要设置</button>
+            <div id="motorIdState" class="step-detail" style="margin-top:8px"></div>
+          </div>
+        </div>
         <div class="step config-step" id="portCard">
           <div class="step-icon">🔌</div>
           <div class="step-body">
