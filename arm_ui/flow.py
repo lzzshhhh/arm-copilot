@@ -379,11 +379,12 @@ class FlowEngine:
 
     def _camera_arg(self) -> str:
         ci = self.record_config.get("camera_index") or 0
-        # 320×240：CPU 训练时视频解码是最大瓶颈（实测 640×480 AV1 约 35s/步），
-        # 降 4 倍像素后训练提速约 4 倍，采集验证阶段画质足够
+        # 640×480：SO-101 + lerobot 生态的标准采集分辨率（相机原生输出、
+        # 官方教程与社区数据集一致）。CPU 训练嫌慢时的降级选项是 320×240
+        #（解码提速约 4 倍，代价是细节损失，只建议冒烟阶段用）
         return (
             f'--robot.cameras="{{cam_0: {{type: opencv, index_or_path: {ci}, '
-            f'width: 320, height: 240, fps: 30}}}}"'
+            f'width: 640, height: 480, fps: 30}}}}"'
         )
 
     def _resolve_local_dataset(self, repo_id: str) -> str:
