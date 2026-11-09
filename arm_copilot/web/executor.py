@@ -3,7 +3,7 @@
 - mock：先用 arm_copilot.tools.shell.mock_run 得到完整结果，再逐行回放；
 - 真实：Popen 流式读取（stdout 与 stderr 合流），看门狗按风险超时强杀。
 
-之所以放在 arm_ui 而不是改 tools/shell.py：Web 层专属能力，原工具路径不受影响。
+之所以独立于 tools/shell.py：Web 层专属能力（流式/超时/注入），原 CLI 工具路径不受影响。
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ def _child_env() -> dict:
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
     env["HF_HUB_OFFLINE"] = "1"
-    # PATH 补全：服务若由未激活 venv 的终端启动（如直接 python arm_ui/app.py），
+    # PATH 补全：服务若由未激活 venv 的终端启动（如直接 python -m arm_copilot.web），
     # 子进程 shell 找不到 lerobot-train 等命令，报"不是内部或外部命令"。
     # 把当前解释器目录与项目根 .venv/Scripts 都补到 PATH 最前（存在与否无害）。
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))

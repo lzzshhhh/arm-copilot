@@ -22,8 +22,8 @@ from arm_copilot.products.base import ProductProfile, Step
 from arm_copilot.tools import shell as shell_mod
 from arm_copilot.tools.base import RISK_SAFE
 
-from arm_ui.events import EventBus
-from arm_ui.executor import (
+from arm_copilot.web.events import EventBus
+from arm_copilot.web.executor import (
     _kill_tree,
     run_mock_streaming,
     run_real_streaming,
@@ -42,7 +42,7 @@ PHASE_META = {
 # 流程结构版本：向导步骤增删后 +1，旧进度文件据此对齐（非 install 关卡重置）
 FLOW_VERSION = 2
 
-# arm_ui 注入的补充步骤（不改 arm_copilot 产品档案）：
+# web 层注入的补充步骤（不改产品档案）：
 # 在 configure.1 位置插入 leader 端口识别，让两臂端口都能被引导找出并自动填入
 _LEADER_PORT_STEP = Step(
     title="找到主动臂的连接口（leader）",
@@ -212,7 +212,7 @@ _MOTORBUS_RE = re.compile(r"motorsbus is\s+'?(COM\d+|/dev/ttyACM\d+)'?", re.IGNO
 _FOLLOWER_PLACEHOLDER = "/dev/ttyACM0"
 _LEADER_PLACEHOLDER = "/dev/ttyACM1"
 
-# 采集命令中的占位参数（arm_ui 层替换，不动 arm_copilot 档案）
+# 采集命令中的占位参数（web 层替换，不动产品档案）
 _RECORD_REPO_PLACEHOLDER = "你的用户名/数据集名"
 # lerobot 0.6 起条数参数挪到了 dataset 下：--num-episodes → --dataset.num_episodes
 _EPISODES_ARG_RE = re.compile(r"--num-episodes=(\d+)")
@@ -220,7 +220,7 @@ _EPISODES_RE = re.compile(r"--dataset\.num_episodes=\d+")
 
 # 第一关安装命令补丁：档案只装 feetech（电机驱动），但第四关的
 # 采集/训练/评估分别还需要 dataset / training / evaluation 附加包，
-# 一次装全，避免后期各步再缺库（arm_ui 层替换，不动原档案）。
+# 一次装全，避免后期各步再缺库（web 层替换，不动原档案）。
 _INSTALL_PATCH_FROM = 'pip install "lerobot[feetech]"'
 # 默认直接装 CUDA 版 torch：CUDA 版在无 GPU 机器上也能正常用 CPU 训练
 # （只是多占 ~2.5GB 磁盘），有 NVIDIA 卡的机器则开箱即用 GPU 加速。

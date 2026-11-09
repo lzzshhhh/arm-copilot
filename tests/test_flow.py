@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-import sys
 import threading
-from pathlib import Path
 
 import pytest
 
-# 让未安装源码树的测试也能找到 arm_copilot / arm_ui
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from arm_copilot.products.base import PRODUCTS
 
-from arm_copilot.products.base import PRODUCTS  # noqa: E402
-
-from arm_ui.events import EventBus  # noqa: E402
-from arm_ui.flow import (  # noqa: E402
+from arm_copilot.web.events import EventBus
+from arm_copilot.web.flow import (
     FlowEngine,
     FlowError,
     ST_DONE,
@@ -46,7 +39,7 @@ class TestBasics:
         assert len(eng.order) == 13
         assert eng.order[0] == "install.0"
         assert eng.order[-1] == "next.2"
-        # arm_ui 注入的 leader 端口识别步骤位于 configure.1
+        # web 层注入的 leader 端口识别步骤位于 configure.1
         assert "leader" in eng.steps["configure.1"].title
         assert eng.steps["configure.1"].commands == ["lerobot-find-port"]
 
@@ -120,7 +113,7 @@ class TestRunStep:
 
     def test_windows_missing_ports_blocked_early(self, tmp_path, monkeypatch):
         """Windows + 端口未设置 → 命令不执行，直接友好失败并落日志。"""
-        monkeypatch.setattr("arm_ui.flow.platform.system", lambda: "Windows")
+        monkeypatch.setattr("arm_copilot.web.flow.platform.system", lambda: "Windows")
         eng = make_engine(tmp_path)
         for sid in ("install.0", "install.1", "install.2", "configure.0", "configure.1"):
             eng.statuses[sid] = ST_DONE
@@ -325,12 +318,12 @@ class TestConcurrency:
 
 class TestLogTrim:
     def test_short_output_kept_intact(self):
-        from arm_ui.flow import _trim_for_log
+        from arm_copilot.web.flow import _trim_for_log
         text = "line1\nline2"
         assert _trim_for_log(text) == text
 
     def test_huge_output_trimmed_head_tail(self):
-        from arm_ui.flow import _trim_for_log
+        from arm_copilot.web.flow import _trim_for_log
         text = "HEADMARK\n" + "x" * 60000 + "\nTAILMARK"
         trimmed = _trim_for_log(text)
         assert "HEADMARK" in trimmed and "TAILMARK" in trimmed
@@ -341,7 +334,7 @@ class TestLogTrim:
 class TestTeleoperateStopIsDone:
     def test_user_stop_on_teleoperate_counts_as_done(self, tmp_path, monkeypatch):
         """遥操作被用户停止 = 正常完成；同样的非零退出、非用户停止 = 失败。"""
-        from arm_ui import flow as flow_mod
+        from arm_copilot.web import flow as flow_mod
 
         eng = make_engine(tmp_path)
         monkeypatch.setattr(flow_mod, "run_mock_streaming", lambda *a, **k: (130, "会话被中断", ""))
@@ -360,7 +353,7 @@ class TestTeleoperateStopIsDone:
 
     def test_user_stop_on_rollout_counts_as_done(self, tmp_path, monkeypatch):
         """评估（lerobot-rollout）被用户停止 = 正常完成。"""
-        from arm_ui import flow as flow_mod
+        from arm_copilot.web import flow as flow_mod
 
         eng = make_engine(tmp_path)
         monkeypatch.setattr(flow_mod, "run_mock_streaming", lambda *a, **k: (130, "会话被中断", ""))
@@ -424,7 +417,7 @@ class TestRecordConfig:
         eng.set_ports("COM3", "COM4")
         for sid in eng.order[:12]:
             eng.statuses[sid] = ST_DONE
-        monkeypatch.setattr("arm_ui.flow.run_mock_streaming", lambda *a, **k: (0, "", ""))
+        monkeypatch.setattr("arm_copilot.web.flow.run_mock_streaming", lambda *a, **k: (0, "", ""))
         eng.run_step("next.0")
         assert eng.statuses["next.0"] == ST_FAILED
         assert "数据集名称" in eng.run_log_path.read_text(encoding="utf-8")
@@ -435,7 +428,7 @@ class TestRecordConfig:
         eng.set_record_config("zhangsan/pick_cube", 30)
         for sid in eng.order[:12]:
             eng.statuses[sid] = ST_DONE
-        monkeypatch.setattr("arm_ui.flow.run_mock_streaming", lambda *a, **k: (0, "done", ""))
+        monkeypatch.setattr("arm_copilot.web.flow.run_mock_streaming", lambda *a, **k: (0, "done", ""))
         eng.run_step("next.0")
         assert eng.statuses["next.0"] == ST_DONE
         log = eng.run_log_path.read_text(encoding="utf-8")
@@ -467,7 +460,7 @@ class TestInstallPatch:
     def test_patched_install_passes_whitelist_and_executes(self, tmp_path):
         from arm_copilot.tools.shell import validate
 
-        from arm_ui.flow import _INSTALL_PATCH_TO
+        from arm_copilot.web.flow import _INSTALL_PATCH_TO
 
         ok, why = validate(_INSTALL_PATCH_TO)
         assert ok, why
@@ -480,7 +473,7 @@ class TestInstallPatch:
         assert " pynput" in log
 
     def test_record_command_disables_push_to_hub(self):
-        from arm_ui.flow import _patch_command
+        from arm_copilot.web.flow import _patch_command
 
         cmd = _patch_command("lerobot-record --robot.port=/dev/ttyACM0 --dataset.repo_id=a/b --num-episodes=50")
         assert "--dataset.push_to_hub=false" in cmd
@@ -493,8 +486,8 @@ class TestInstallPatch:
         from pathlib import Path
         from arm_copilot.products.base import PRODUCTS
 
-        from arm_ui.events import EventBus
-        from arm_ui.flow import FlowEngine
+        from arm_copilot.web.events import EventBus
+        from arm_copilot.web.flow import FlowEngine
 
         fake_base = tmp_path / ".cache/huggingface/lerobot"
         for ver in ("box_20260101_000000", "box_20260102_000000"):
@@ -517,7 +510,7 @@ class TestInstallPatch:
         assert "--dataset.repo_id=usr/box " in record_cmd + " "  # 录制仍用裸名
 
     def test_train_command_pinned_output_and_no_push(self):
-        from arm_ui.flow import _patch_command
+        from arm_copilot.web.flow import _patch_command
 
         cmd = _patch_command("lerobot-train --policy.type=act --dataset.repo_id=usr/box")
         assert "--policy.push_to_hub=false" in cmd
@@ -525,7 +518,7 @@ class TestInstallPatch:
 
     def test_rotate_train_dir_archives_old(self, tmp_path, monkeypatch):
         import time as _time
-        from arm_ui.flow import _rotate_train_dir
+        from arm_copilot.web.flow import _rotate_train_dir
 
         monkeypatch.chdir(tmp_path)
         old = tmp_path / "outputs/train/act"
@@ -538,7 +531,7 @@ class TestInstallPatch:
         _rotate_train_dir()  # 目录不存在时安全空转
 
     def test_ensure_last_checkpoint_creates_junction_and_reports_success(self, tmp_path, monkeypatch):
-        from arm_ui.flow import _ensure_last_checkpoint
+        from arm_copilot.web.flow import _ensure_last_checkpoint
 
         monkeypatch.chdir(tmp_path)
         ckpt = tmp_path / "outputs/train/act/checkpoints"
@@ -559,7 +552,7 @@ class TestInstallPatch:
         assert _ensure_last_checkpoint(out) is True
 
     def test_ensure_last_checkpoint_repoints_stale_link(self, tmp_path, monkeypatch):
-        from arm_ui.flow import _ensure_last_checkpoint
+        from arm_copilot.web.flow import _ensure_last_checkpoint
 
         monkeypatch.chdir(tmp_path)
         ckpt = tmp_path / "outputs/train/act/checkpoints"
@@ -606,8 +599,8 @@ class TestInstallPatch:
         from pathlib import Path
         from arm_copilot.products.base import PRODUCTS
 
-        from arm_ui.events import EventBus
-        from arm_ui.flow import FlowEngine
+        from arm_copilot.web.events import EventBus
+        from arm_copilot.web.flow import FlowEngine
 
         fake = tmp_path / ".cache/huggingface/lerobot/usr"
         good = fake / "box_20260101_000000" / "meta"

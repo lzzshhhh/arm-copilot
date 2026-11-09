@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 import threading
 import time
-from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from arm_ui.executor import _kill_tree, run_real_streaming, write_stdin  # noqa: E402
+from arm_copilot.web.executor import _kill_tree, run_real_streaming, write_stdin
 
 
 def _wait_handle(handle: dict, timeout: float = 5.0) -> bool:
@@ -129,8 +123,8 @@ class TestFlowInteractiveGuard:
     def test_mock_mode_send_input_refused(self, tmp_path):
         from arm_copilot.products.base import PRODUCTS
 
-        from arm_ui.events import EventBus
-        from arm_ui.flow import FlowEngine
+        from arm_copilot.web.events import EventBus
+        from arm_copilot.web.flow import FlowEngine
 
         eng = FlowEngine(
             PRODUCTS["so101"], mock=True, approve=lambda *a: True, bus=EventBus(),
@@ -146,8 +140,8 @@ class TestInteractiveEndpoints:
     def test_endpoints_409_when_nothing_running(self, tmp_path):
         from fastapi.testclient import TestClient
 
-        from arm_ui.app import create_app
-        from arm_ui.state import AppState
+        from arm_copilot.web.app import create_app
+        from arm_copilot.web.runtime import AppState
 
         state = AppState(mock=True, state_dir=tmp_path)
         with TestClient(create_app(state)) as c:
@@ -160,7 +154,7 @@ class TestInteractiveEndpoints:
 class TestRunQuick:
     def test_timeout_kills_tree_and_returns(self):
         """回归：超时只杀 cmd 外壳时，孙进程占管道会让读取永久挂死。"""
-        from arm_ui.executor import run_quick
+        from arm_copilot.web.executor import run_quick
 
         start = time.time()
         code, out = run_quick('python -c "import time; time.sleep(30)"', timeout=1.5)
@@ -170,7 +164,7 @@ class TestRunQuick:
         assert elapsed < 15, f"run_quick 超时路径挂死（{elapsed:.1f}s）"
 
     def test_normal_command_output(self):
-        from arm_ui.executor import run_quick
+        from arm_copilot.web.executor import run_quick
 
         code, out = run_quick('python -c "print(123)"')
         assert code == 0 and "123" in out
@@ -182,8 +176,8 @@ class TestSendInputRouting:
     def test_streaming_uses_console_enter(self, tmp_path, monkeypatch):
         from arm_copilot.products.base import PRODUCTS
 
-        from arm_ui import flow as flow_mod
-        from arm_ui.events import EventBus
+        from arm_copilot.web import flow as flow_mod
+        from arm_copilot.web.events import EventBus
 
         calls = {"console": 0, "stdin": 0}
         monkeypatch.setattr(flow_mod, "send_console_enter", lambda: (calls.__setitem__("console", calls["console"] + 1) or True))
@@ -201,7 +195,7 @@ class TestSendInputRouting:
         assert calls["stdin"] == 1 and calls["console"] == 1  # 静止提示只走管道
 
     def test_console_enter_on_windows_or_graceful(self):
-        from arm_ui.executor import send_console_enter
+        from arm_copilot.web.executor import send_console_enter
 
         # 无控制台的测试进程里应安全返回 False，不抛异常
         result = send_console_enter()
@@ -212,8 +206,8 @@ class TestSendInputRouting:
 def client(tmp_path):
     from fastapi.testclient import TestClient
 
-    from arm_ui.app import create_app
-    from arm_ui.state import AppState
+    from arm_copilot.web.app import create_app
+    from arm_copilot.web.runtime import AppState
 
     state = AppState(mock=True, state_dir=tmp_path)
     with TestClient(create_app(state)) as c:
@@ -224,7 +218,7 @@ class TestServoToolEndpoints:
 
     def test_scan_and_set_id_endpoints(self, client, monkeypatch):
         c, state = client
-        from arm_ui import servo_tool
+        from arm_copilot.web import servo_tool
 
         monkeypatch.setattr(
             servo_tool, "scan",
@@ -263,7 +257,7 @@ class TestServoToolEndpoints:
 class TestRealEnvCheck:
     def test_real_mode_env_check_completes(self, tmp_path):
         """真实模式体检必须秒级返回（不跑交互式 find-port）。"""
-        from arm_ui.state import AppState
+        from arm_copilot.web.runtime import AppState
 
         state = AppState(mock=False, state_dir=tmp_path)
         start = time.time()
@@ -275,7 +269,7 @@ class TestRealEnvCheck:
         assert elapsed < 90, f"体检耗时异常（{elapsed:.1f}s）"
 
     def test_real_mode_registry_env_check_patched(self, tmp_path):
-        from arm_ui.state import AppState
+        from arm_copilot.web.runtime import AppState
 
         state = AppState(mock=False, state_dir=tmp_path)
         if state.agent is None:

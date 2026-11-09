@@ -22,10 +22,10 @@ from arm_copilot.products.base import PRODUCTS
 from arm_copilot.tools import ToolContext, build_registry
 from arm_copilot.tools.diagnostics import make_env_check_tool
 
-from arm_ui.approvals import ApprovalBroker
-from arm_ui.events import EventBus
-from arm_ui.executor import run_quick
-from arm_ui.flow import FlowEngine, FlowError
+from arm_copilot.web.approvals import ApprovalBroker
+from arm_copilot.web.events import EventBus
+from arm_copilot.web.executor import run_quick
+from arm_copilot.web.flow import FlowEngine, FlowError
 
 
 _cuda_cache: dict = {}
@@ -198,7 +198,7 @@ class AppState:
 
         original = make_env_check_tool(self.tool_ctx)
         # ToolRegistry 只有 register（查重）没有替换；这里直达内部表，
-        # 属 arm_ui 对 arm_copilot 的只读复用之外的唯一一处受控写访问。
+        # 属 web 层对核心工具注册表唯一的受控写访问。
         registry._tools["env_check"] = Tool(
             name="env_check",
             description=original.description,

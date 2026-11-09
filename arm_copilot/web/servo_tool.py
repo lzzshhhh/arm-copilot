@@ -201,7 +201,7 @@ def torque_test(port: str, cycles: int = 30) -> dict:
 
 
 def _cli() -> int:
-    """命令行入口：python -m arm_ui.servo_tool COM11 [COM12 ...]"""
+    """命令行入口：python -m arm_copilot.web.servo_tool COM11 [COM12 ...]"""
     import argparse
     import json
 

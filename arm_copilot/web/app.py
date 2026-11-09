@@ -1,9 +1,9 @@
 """臂管家 Web UI：FastAPI 应用与启动入口。
 
 用法（在仓库根目录）：
-    python arm_ui/app.py --mock     # 模拟模式，无硬件演示
-    python -m arm_ui --mock
-    python arm_ui/app.py            # 真实模式（会真装机 / 驱动电机，注意安全）
+    python -m arm_copilot.web --mock   # 模拟模式，无硬件演示
+    arm-copilot-web --mock             # 同上（pip install 后的命令行入口）
+    python -m arm_copilot.web          # 真实模式（会真装机 / 驱动电机，注意安全）
 """
 
 from __future__ import annotations
@@ -15,21 +15,16 @@ import threading
 import webbrowser
 from pathlib import Path
 
-# 允许未 pip install -e 的源码树直接运行（arm_copilot 在仓库根目录）
-_ROOT = Path(__file__).resolve().parent.parent
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from arm_copilot import __version__
-from arm_ui import servo_tool
-from arm_ui.events import EventBus
-from arm_ui.flow import FlowError
-from arm_ui.state import AppState, BusyError, ChatDisabledError
+from arm_copilot.web import servo_tool
+from arm_copilot.web.events import EventBus
+from arm_copilot.web.flow import FlowError
+from arm_copilot.web.runtime import AppState, BusyError, ChatDisabledError
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -159,7 +154,7 @@ def create_app(state: AppState) -> FastAPI:
 
     @app.get("/api/train-config")
     def get_train_config() -> dict:
-        from arm_ui.state import _cuda_cached
+        from arm_copilot.web.runtime import _cuda_cached
 
         # 只读缓存：预热未完成时为 null（前端显示"检测中"），绝不在请求里 import torch
         return {"config": state.flow.train_config, "cuda_available": _cuda_cached()}
@@ -294,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认 127.0.0.1，仅本机）")
     parser.add_argument("--port", type=int, default=8000, help="端口（默认 8000）")
     parser.add_argument("--no-open", action="store_true", help="不自动打开浏览器")
-    parser.add_argument("--state-dir", default=None, help="进度文件目录（默认 arm_ui/state）")
+    parser.add_argument("--state-dir", default=None, help="进度文件目录（默认 arm_copilot/web/state）")
     args = parser.parse_args(argv)
 
     import uvicorn

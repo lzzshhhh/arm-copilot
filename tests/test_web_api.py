@@ -3,21 +3,15 @@
 from __future__ import annotations
 
 import json
-import sys
 import threading
 import time
-from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from fastapi.testclient import TestClient
 
-from fastapi.testclient import TestClient  # noqa: E402
-
-from arm_ui.app import create_app  # noqa: E402
-from arm_ui.state import AppState  # noqa: E402
+from arm_copilot.web.app import create_app
+from arm_copilot.web.runtime import AppState
 
 
 class _Msg:
@@ -250,7 +244,7 @@ class TestChat:
 
 class TestChatDisabled:
     def test_chat_disabled_503_but_wizard_ok(self, tmp_path, monkeypatch):
-        import arm_ui.state as state_mod
+        import arm_copilot.web.runtime as state_mod
 
         class NoConfig:
             def __init__(self, *a, **kw):
