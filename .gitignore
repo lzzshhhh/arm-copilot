@@ -7,6 +7,16 @@ dist/
 .env
 logs/
 .pytest_cache/
+.coverage
+htmlcov/
+
+# ZCode 会话产物（工作计划等过程文件，不属于项目资产）
+.zcode/
+
+# Windows 桌面环境易混入的系统杂物
+Thumbs.db
+Desktop.ini
+~$*
 
 # web 运行时状态（进度/运行日志）与训练产出，随机器演进、不进版本库
 arm_copilot/web/state/
